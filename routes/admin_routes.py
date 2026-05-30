@@ -2,12 +2,14 @@ from flask import Blueprint, jsonify
 from models.api_usage_log import APIUsageLog
 from db import get_db
 from sqlalchemy.orm import Session
+from middleware.jwt_auth import admin_required
 
 admin_bp = Blueprint('admin', __name__)
 
 
 @admin_bp.route('/logs', methods=['GET'])
-def get_api_logs():
+@admin_required
+def get_api_logs(current_user):
     """
     Admin endpoint to retrieve API usage logs.
     Admin users can retrieve API usage logs.
