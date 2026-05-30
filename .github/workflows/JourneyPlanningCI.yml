@@ -28,7 +28,7 @@ jobs:
           --health-retries=5
 
     env:
-      MYSQL_HOST: 127.0.0.1
+      MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: user
       MYSQL_PASSWORD: Unitec123
@@ -43,19 +43,14 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          tags: journey-app:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: docker build -t journey-app:latest .
 
       - name: Run application container
         run: |
           docker run -d \
             --name journey-app-container \
             -p 5000:5000 \
-            -e MYSQL_HOST=127.0.0.1 \
+            -e MYSQL_HOST=mysql \
             -e MYSQL_PORT=3306 \
             -e MYSQL_USER=user \
             -e MYSQL_PASSWORD=Unitec123 \
@@ -102,7 +97,7 @@ jobs:
           --health-retries=5
 
     env:
-      MYSQL_HOST: 127.0.0.1
+      MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: user
       MYSQL_PASSWORD: Unitec123
@@ -127,7 +122,7 @@ jobs:
         run: |
           python -c "from db import init_db; init_db()"
         env:
-          MYSQL_HOST: 127.0.0.1
+          MYSQL_HOST: mysql
           MYSQL_PORT: 3306
           MYSQL_USER: user
           MYSQL_PASSWORD: Unitec123
@@ -136,7 +131,7 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v --tb=short
         env:
-          MYSQL_HOST: 127.0.0.1
+          MYSQL_HOST: mysql
           MYSQL_PORT: 3306
           MYSQL_USER: user
           MYSQL_PASSWORD: Unitec123
