@@ -57,6 +57,139 @@ Users must register and authenticate before accessing protected endpoints. The a
 
 ---
 
+# MySQL Database Setup
+
+## Prerequisites
+
+- MySQL database running in Docker container
+- Python 3.8 or higher
+- Docker installed and running
+
+## Setting Up Docker MySQL Container
+
+To set up the MySQL database in a Docker container, run the following command:
+
+```bash
+docker run -d --name journey_mysql -e MYSQL_ROOT_PASSWORD=Unitec123 -e MYSQL_DATABASE=journey_planning -e MYSQL_USER=user -e MYSQL_PASSWORD=Unitec123 -p 3306:3306 mysql:latest
+```
+
+This command creates a MySQL container with:
+- Container name: `journey_mysql`
+- Database: `journey_planning`
+- User: `user` with password `Unitec123`
+- Root password: `Unitec123`
+- Port mapping: `3306:3306` (host:container)
+
+To verify the container is running:
+
+```bash
+docker ps
+```
+
+To view container logs:
+
+```bash
+docker logs journey_mysql
+```
+
+To stop the container:
+
+```bash
+docker stop journey_mysql
+```
+
+To start the container:
+
+```bash
+docker start journey_mysql
+```
+
+## Docker MySQL Container Connection
+
+The application connects to an existing MySQL database running in a Docker container.
+
+### Environment Configuration
+
+Create or update the `.env` file in the project root with your Docker MySQL container details:
+
+```env
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=user
+MYSQL_PASSWORD=Unitec123
+MYSQL_DATABASE=journey_planning
+```
+
+### Connection Options
+
+**Option 1: Same Docker Network**
+If your application runs in the same Docker network as the MySQL container:
+```env
+MYSQL_HOST=mysql  # Container name
+```
+
+**Option 2: Host to Container**
+If your application runs on the host machine:
+```env
+MYSQL_HOST=localhost
+MYSQL_PORT=3306  # Or the mapped port from Docker
+```
+
+**Option 3: Docker Compose**
+If using Docker Compose, ensure both services are in the same network:
+```yaml
+services:
+  app:
+    depends_on:
+      - mysql
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: journey_planning
+```
+
+## Testing Connection
+
+Test the MySQL connection by running:
+
+```bash
+python db.py
+```
+
+You should see: `MySQL database connection successful!`
+
+## Initializing Tables
+
+The database tables will be automatically created when you start the application. The `init_db()` function in `db.py` handles table creation based on your SQLAlchemy models.
+
+To manually initialize tables:
+
+```python
+from db import init_db
+init_db()
+```
+
+## Troubleshooting
+
+### Connection Refused
+
+- Ensure the MySQL Docker container is running: `docker ps`
+- Check that the host in `.env` matches your Docker setup
+- Verify the container is accessible from your application
+
+### Access Denied
+
+- Verify username and password in `.env` match Docker container credentials
+- Check MySQL container environment variables
+
+### Database Not Found
+
+- Ensure the database exists in the Docker container
+- Check the database name in `.env` matches the container database
+- Connect to the container to verify: `docker exec -it <container_name> mysql -u root -p`
+
+---
+
 # Database Design
 
 ## Users Table
