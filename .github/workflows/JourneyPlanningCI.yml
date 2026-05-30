@@ -15,10 +15,10 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: Unitec123
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: journey_planning
           MYSQL_USER: user
-          MYSQL_PASSWORD: Unitec123
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
         ports:
           - 3306:3306
         options: >-
@@ -32,9 +32,9 @@ jobs:
       MYSQL_HOST: 127.0.0.1
       MYSQL_PORT: 3306
       MYSQL_USER: user
-      MYSQL_PASSWORD: Unitec123
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       MYSQL_DATABASE: journey_planning
-      JWT_SECRET_KEY: test-secret-key
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
 
     steps:
       - name: Checkout source code
@@ -51,9 +51,9 @@ jobs:
             -e MYSQL_HOST=127.0.0.1 \
             -e MYSQL_PORT=3306 \
             -e MYSQL_USER=user \
-            -e MYSQL_PASSWORD=Unitec123 \
+            -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
             -e MYSQL_DATABASE=journey_planning \
-            -e JWT_SECRET_KEY=test-secret-key \
+            -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
             journey-app:latest
 
       - name: Wait for app startup
@@ -82,10 +82,10 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: Unitec123
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: journey_planning
           MYSQL_USER: user
-          MYSQL_PASSWORD: Unitec123
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
         ports:
           - 3306:3306
         options: >-
@@ -99,9 +99,9 @@ jobs:
       MYSQL_HOST: 127.0.0.1
       MYSQL_PORT: 3306
       MYSQL_USER: user
-      MYSQL_PASSWORD: Unitec123
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       MYSQL_DATABASE: journey_planning
-      JWT_SECRET_KEY: test-secret-key
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
 
     steps:
       - name: Checkout source code
@@ -120,7 +120,7 @@ jobs:
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
-            if mysqladmin ping -h 127.0.0.1 -u root -pUnitec123 --silent; then
+            if mysqladmin ping -h 127.0.0.1 -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} --silent; then
               echo "MySQL is ready"
               exit 0
             fi
@@ -136,7 +136,7 @@ jobs:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
           MYSQL_USER: user
-          MYSQL_PASSWORD: Unitec123
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DATABASE: journey_planning
 
       - name: Run tests
@@ -145,6 +145,6 @@ jobs:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
           MYSQL_USER: user
-          MYSQL_PASSWORD: Unitec123
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DATABASE: journey_planning
-          JWT_SECRET_KEY: test-secret-key
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
