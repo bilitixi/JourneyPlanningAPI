@@ -32,7 +32,7 @@ jobs:
           --health-start-period=30s
 
     env:
-      MYSQL_HOST: 127.0.0.1
+      MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: user
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -52,7 +52,7 @@ jobs:
       # =========================
       - name: Wait for MySQL
         run: |
-          for i in {1..20}; do
+          for i in {1..40}; do
             if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} --silent; then
               echo "MySQL is ready"
               exit 0
@@ -64,14 +64,14 @@ jobs:
           exit 1
 
       # =========================
-      # RUN APP
+      # RUN APP (IMPORTANT FIX HERE)
       # =========================
       - name: Run application container
         run: |
           docker run \
             --name journey-app-container \
             -p 5000:5000 \
-            -e MYSQL_HOST=127.0.0.1 \
+            -e MYSQL_HOST=mysql \
             -e MYSQL_PORT=3306 \
             -e MYSQL_USER=user \
             -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
@@ -83,7 +83,7 @@ jobs:
       # =========================
       # DEBUG LOGS
       # =========================
-      - name: Show container logs
+      - name: Show logs
         if: always()
         run: docker logs journey-app-container || true
 
@@ -117,7 +117,7 @@ jobs:
           --health-start-period=30s
 
     env:
-      MYSQL_HOST: 127.0.0.1
+      MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: user
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -161,7 +161,7 @@ jobs:
       - name: Initialize database
         run: python -c "from db import init_db; init_db()"
         env:
-          MYSQL_HOST: 127.0.0.1
+          MYSQL_HOST: mysql
           MYSQL_PORT: 3306
           MYSQL_USER: user
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -173,7 +173,7 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v --tb=short
         env:
-          MYSQL_HOST: 127.0.0.1
+          MYSQL_HOST: mysql
           MYSQL_PORT: 3306
           MYSQL_USER: user
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
