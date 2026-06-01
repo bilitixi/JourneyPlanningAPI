@@ -5,7 +5,7 @@ from middleware.jwt_auth import token_required
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-journey_bp = Blueprint('journey', __name__)
+journey_bp = Blueprint('journey', __name__, url_prefix='/api/journeys')
 
 
 @journey_bp.route('/', methods=['GET'])
