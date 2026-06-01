@@ -11,68 +11,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-          MYSQL_DATABASE: journey_planning
-          MYSQL_USER: user
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-          --health-start-period=20s
-
-    env:
-      MYSQL_HOST: 127.0.0.1
-      MYSQL_PORT: 3306
-      MYSQL_USER: user
-      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-      MYSQL_DATABASE: journey_planning
-      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
       - name: Build Docker image
         run: docker build -t journey-app:latest .
-
-      - name: Run application container
-        run: |
-          docker run -d \
-            --name journey-app-container \
-            -p 5000:5000 \
-            -e MYSQL_HOST=127.0.0.1 \
-            -e MYSQL_PORT=3306 \
-            -e MYSQL_USER=user \
-            -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
-            -e MYSQL_DATABASE=journey_planning \
-            -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
-            journey-app:latest
-
-      - name: Wait for app startup
-        run: |
-          for i in {1..30}; do
-            if curl -f http://localhost:5000/; then
-              echo "Application is healthy"
-              exit 0
-            fi
-            echo "Waiting for application... ($i/30)"
-            sleep 2
-          done
-          echo "Application failed to start"
-          exit 1
-
-      - name: Stop container
-        if: always()
-        run: docker stop journey-app-container
-
 
   test:
     runs-on: ubuntu-latest
@@ -89,11 +33,11 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD"
+          --health-cmd="mysqladmin ping -h localhost -uroot -p${MYSQL_ROOT_PASSWORD}"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-          --health-start-period=20s
+          --health-start-period=30s
 
     env:
       MYSQL_HOST: 127.0.0.1
@@ -102,6 +46,7 @@ jobs:
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       MYSQL_DATABASE: journey_planning
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
 
     steps:
       - name: Checkout source code
@@ -110,7 +55,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
@@ -127,24 +72,16 @@ jobs:
             echo "Waiting for MySQL... ($i/30)"
             sleep 2
           done
-          echo "MySQL failed"
+          echo "MySQL failed to start"
           exit 1
 
+      - name: Verify database connection
+        run: python db.py
+
       - name: Initialize database
-        run: python -c "from db import init_db; init_db()"
-        env:
-          MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
-          MYSQL_USER: user
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_DATABASE: journey_planning
+        run: |
+          python -c "from db import init_db; init_db()"
 
       - name: Run tests
-        run: pytest tests/ -v --tb=short
-        env:
-          MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
-          MYSQL_USER: user
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_DATABASE: journey_planning
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+        run: |
+          pytest tests/ -v --tb=short
