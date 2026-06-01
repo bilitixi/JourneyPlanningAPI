@@ -52,6 +52,10 @@ def init_db():
     from models.user import User
     from models.journey import Journey
     from models.api_usage_log import APIUsageLog
+    print("Tables registered:")
+    print(Base.metadata.tables.keys())
+
+    Base.metadata.create_all(bind=engine)
     
     # Create all tables
     Base.metadata.create_all(bind=engine)

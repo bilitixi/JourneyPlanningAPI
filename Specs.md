@@ -393,6 +393,53 @@ Authorization: Bearer <access_token>
 
 ---
 
+### AI Recommendations Endpoints
+*AI recommendation endpoints require JWT authentication*
+
+#### Generate Travel Recommendations
+**POST** `/api/recommendations/<journey_id>`
+
+Generate AI-powered travel recommendations for a specific journey.
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**URL Parameters:**
+- `journey_id` (integer, required): The ID of the journey
+
+**Response (200 OK):**
+```json
+{
+  "destination": "Paris",
+  "recommendations": [
+    "Visit the Eiffel Tower",
+    "Explore the Louvre Museum",
+    "Walk along the Champs-Élysées",
+    "Take a Seine River cruise",
+    "Visit Montmartre and Sacré-Cœur"
+  ]
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "error": "Journey not found"
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "error": "Failed to generate recommendations",
+  "details": "Error message details"
+}
+```
+
+---
+
 ## Data Models
 
 ### User Model
@@ -475,7 +522,12 @@ The backend requires the following environment variables:
 - `OPENROUTER_API_KEY`: API key for OpenRouter AI service (for recommendations)
 
 **Database:**
-- Database configuration is handled in `db.py` (SQLite by default)
+- `MYSQL_HOST`: MySQL host (default: "localhost")
+- `MYSQL_PORT`: MySQL port (default: "3306")
+- `MYSQL_USER`: MySQL username (default: "root")
+- `MYSQL_PASSWORD`: MySQL password (default: "")
+- `MYSQL_DATABASE`: MySQL database name (default: "journey_planning")
+- Database configuration is handled in `db.py` (MySQL with SQLAlchemy)
 
 ---
 
@@ -586,18 +638,26 @@ const createJourney = async (journeyData) => {
 5. **Error Handling:** Always check response.ok and handle error messages appropriately
 6. **User Isolation:** Users can only access their own journeys; the backend enforces this via user_id in JWT payload
 7. **Weather Data:** Weather endpoint requires a valid journey_id belonging to the authenticated user
-8. **Admin Routes:** Admin routes exist in the codebase but are not currently registered in the main app
+8. **AI Recommendations:** Recommendations endpoint uses AI service to generate travel suggestions based on journey details
+9. **Database:** Backend uses MySQL database with SQLAlchemy ORM
+10. **Admin Routes:** Admin routes exist in the codebase but are not currently registered in the main app
 
 ---
 
 ## Testing
 
 The backend includes pytest tests in the `/tests` directory:
-- `test_journeys.py`: Journey CRUD operations
+- `tests_auth.py`: JWT authentication functionality
+- `test_journeys.py`: Journey model and routes
 - `test_recommendations.py`: AI recommendation service
 - `test_weather.py`: Weather service integration
 
 Run tests with:
 ```bash
 pytest
+```
+
+Run specific test file:
+```bash
+pytest tests/test_weather.py -v
 ```
