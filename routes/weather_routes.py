@@ -1,10 +1,12 @@
+from os import name
+
 from flask import Blueprint, jsonify
 from services.weather_service import WeatherService
 from models.journey import Journey
 from db import get_db
 from middleware.jwt_auth import token_required
 from sqlalchemy.orm import Session
-
+weather_bp = Blueprint('weather', __name__, url_prefix='/api/weather')
 
 
 
