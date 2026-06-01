@@ -5,7 +5,7 @@ from db import get_db
 from middleware.jwt_auth import token_required
 from sqlalchemy.orm import Session
 
-weather_bp = Blueprint('weather', __name__)
+
 
 
 @weather_bp.route('/<int:journey_id>', methods=['GET'])
