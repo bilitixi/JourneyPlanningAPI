@@ -1,6 +1,22 @@
-import sys
-import os
-from pathlib import Path
+import pytest
+from sqlalchemy import text
+from db import Base, engine, SessionLocal
 
-# Add parent directory to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+
+@pytest.fixture(scope='function')
+def db_session():
+    """Create a clean test database session."""
+
+    # 🔥 FIX: disable FK checks (MySQL issue)
+    with engine.connect() as conn:
+        conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        conn.execute(text("SET FOREIGN_KEY_CHECKS=1"))
+
+    session = SessionLocal()
+
+    try:
+        yield session
+    finally:
+        session.close()
