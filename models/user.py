@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from db import Base
 
@@ -13,6 +14,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default='user', nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    journeys = relationship("Journey", back_populates="user")
     
     def to_dict(self):
         return {
