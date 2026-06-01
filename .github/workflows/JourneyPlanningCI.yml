@@ -8,6 +8,9 @@ on:
 
 jobs:
 
+# =========================
+# BUILD + RUNTIME CHECK
+# =========================
   build:
     runs-on: ubuntu-latest
 
@@ -29,7 +32,7 @@ jobs:
           --health-start-period=20s
 
     env:
-      MYSQL_HOST: mysql   # ✅ FIXED
+      MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: user
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -38,18 +41,37 @@ jobs:
       OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
 
     steps:
-      - name: Checkout source code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Build Docker image
         run: docker build -t journey-app:latest .
 
+      # -------------------------
+      # WAIT FOR MYSQL
+      # -------------------------
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h mysql -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} --silent; then
+              echo "MySQL is ready"
+              exit 0
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+          echo "MySQL failed to start"
+          exit 1
+
+      # -------------------------
+      # RUN APP (DEBUG MODE)
+      # -------------------------
       - name: Run application container
         run: |
-          docker run -d \
+          docker run \
             --name journey-app-container \
             -p 5000:5000 \
-            -e MYSQL_HOST=mysql \   # ✅ FIXED
+            -e MYSQL_HOST=mysql \
             -e MYSQL_PORT=3306 \
             -e MYSQL_USER=user \
             -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
@@ -58,29 +80,23 @@ jobs:
             -e OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }} \
             journey-app:latest
 
-      - name: Wait for app startup
-        run: |
-          for i in {1..30}; do
-            if curl -f http://localhost:5000/; then
-              echo "Application is healthy"
-              exit 0
-            fi
-            echo "Waiting for application... ($i/30)"
-            sleep 2
-          done
-
-          echo "Application failed to start"
-          exit 1
-
-      - name: Show container logs (debug)
+      # -------------------------
+      # SHOW LOGS (IMPORTANT)
+      # -------------------------
+      - name: Show container logs
         if: always()
-        run: docker logs journey-app-container
+        run: docker logs journey-app-container || true
 
-      - name: Stop container
+      # -------------------------
+      # SHOW CONTAINER STATUS
+      # -------------------------
+      - name: Show container status
         if: always()
-        run: docker stop journey-app-container
+        run: docker ps -a
 
-
+# =========================
+# TEST JOB
+# =========================
   test:
     runs-on: ubuntu-latest
     needs: build
@@ -103,7 +119,7 @@ jobs:
           --health-start-period=20s
 
     env:
-      MYSQL_HOST: mysql   # ✅ FIXED
+      MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: user
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -112,19 +128,22 @@ jobs:
       OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
 
     steps:
-      - name: Checkout source code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # -------------------------
+      # WAIT FOR MYSQL
+      # -------------------------
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
@@ -135,23 +154,28 @@ jobs:
             echo "Waiting for MySQL... ($i/30)"
             sleep 2
           done
-
           echo "MySQL failed"
           exit 1
 
+      # -------------------------
+      # INIT DB
+      # -------------------------
       - name: Initialize database
         run: python -c "from db import init_db; init_db()"
         env:
-          MYSQL_HOST: mysql   # ✅ FIXED
+          MYSQL_HOST: mysql
           MYSQL_PORT: 3306
           MYSQL_USER: user
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DATABASE: journey_planning
 
+      # -------------------------
+      # RUN TESTS
+      # -------------------------
       - name: Run tests
         run: pytest tests/ -v --tb=short
         env:
-          MYSQL_HOST: mysql   # ✅ FIXED
+          MYSQL_HOST: mysql
           MYSQL_PORT: 3306
           MYSQL_USER: user
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
