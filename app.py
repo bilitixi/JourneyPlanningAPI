@@ -4,7 +4,7 @@ from routes.weather_routes import weather_bp
 from routes.journey_routes import journey_bp
 
 from db import init_db
-
+import models
 app = Flask(__name__)
 
 # Register blueprints
