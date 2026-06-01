@@ -29,7 +29,7 @@ jobs:
           --health-start-period=20s
 
     env:
-      MYSQL_HOST: 127.0.0.1
+      MYSQL_HOST: mysql   # ✅ FIXED
       MYSQL_PORT: 3306
       MYSQL_USER: user
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -49,7 +49,7 @@ jobs:
           docker run -d \
             --name journey-app-container \
             -p 5000:5000 \
-            -e MYSQL_HOST=127.0.0.1 \
+            -e MYSQL_HOST=mysql \   # ✅ FIXED
             -e MYSQL_PORT=3306 \
             -e MYSQL_USER=user \
             -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
@@ -68,8 +68,13 @@ jobs:
             echo "Waiting for application... ($i/30)"
             sleep 2
           done
+
           echo "Application failed to start"
           exit 1
+
+      - name: Show container logs (debug)
+        if: always()
+        run: docker logs journey-app-container
 
       - name: Stop container
         if: always()
@@ -98,7 +103,7 @@ jobs:
           --health-start-period=20s
 
     env:
-      MYSQL_HOST: 127.0.0.1
+      MYSQL_HOST: mysql   # ✅ FIXED
       MYSQL_PORT: 3306
       MYSQL_USER: user
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -123,20 +128,21 @@ jobs:
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
-            if mysqladmin ping -h 127.0.0.1 -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} --silent; then
+            if mysqladmin ping -h mysql -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} --silent; then
               echo "MySQL is ready"
               exit 0
             fi
             echo "Waiting for MySQL... ($i/30)"
             sleep 2
           done
+
           echo "MySQL failed"
           exit 1
 
       - name: Initialize database
         run: python -c "from db import init_db; init_db()"
         env:
-          MYSQL_HOST: 127.0.0.1
+          MYSQL_HOST: mysql   # ✅ FIXED
           MYSQL_PORT: 3306
           MYSQL_USER: user
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -145,9 +151,10 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v --tb=short
         env:
-          MYSQL_HOST: 127.0.0.1
+          MYSQL_HOST: mysql   # ✅ FIXED
           MYSQL_PORT: 3306
           MYSQL_USER: user
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DATABASE: journey_planning
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
