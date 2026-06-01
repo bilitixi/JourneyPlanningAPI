@@ -1,31 +1,36 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from datetime import date
 from app import app
 from models.journey import Journey
-from db import Base, engine, SessionLocal
+from models.user import User
+from db import Base, engine, SessionLocal, init_db
 import jwt
 import os
 
 
-@pytest.fixture
-def client():
-    """Create a test client for the Flask app."""
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
-
-
-@pytest.fixture
+@pytest.fixture(scope='function')
 def db_session():
     """Create a test database session."""
+    # Drop all tables first to ensure clean state
+    Base.metadata.drop_all(bind=engine)
+    # Create all tables
     Base.metadata.create_all(bind=engine)
+    
     session = SessionLocal()
     try:
         yield session
     finally:
         session.close()
         Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture
+def client(db_session):
+    """Create a test client for the Flask app."""
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        yield client
 
 
 @pytest.fixture
@@ -44,10 +49,26 @@ def auth_token():
 
 
 @pytest.fixture
-def sample_journey(db_session):
+def sample_user(db_session):
+    """Create a sample user for testing."""
+    user = User(
+        first_name='Test',
+        last_name='User',
+        email='test@example.com',
+        password_hash='hashed_password',
+        role='user'
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def sample_journey(db_session, sample_user):
     """Create a sample journey for testing."""
     journey = Journey(
-        user_id=1,
+        user_id=sample_user.id,
         destination='Auckland',
         start_date=date(2026, 6, 1),
         end_date=date(2026, 6, 5),
@@ -64,7 +85,7 @@ def sample_journey(db_session):
 class TestWeatherService:
     """Tests for WeatherService."""
     
-    @patch('services.weather_service.OPENWEATHER_API_KEY', 'test-api-key')
+    @patch.dict(os.environ, {'OPENWEATHER_API_KEY': 'test-api-key'})
     @patch('services.weather_service.requests.get')
     def test_get_weather_forecast_success(self, mock_get):
         """Test successful weather forecast retrieval."""
@@ -114,7 +135,7 @@ class TestWeatherService:
         assert result['forecast'][0]['condition'] == 'Cloudy'
         assert result['forecast'][0]['rain_probability'] == 20
     
-    @patch('services.weather_service.OPENWEATHER_API_KEY', 'test-api-key')
+    @patch.dict(os.environ, {'OPENWEATHER_API_KEY': 'test-api-key'})
     @patch('services.weather_service.requests.get')
     def test_get_weather_forecast_location_not_found(self, mock_get):
         """Test weather forecast with invalid location."""
@@ -137,7 +158,7 @@ class TestWeatherService:
         assert 'error' in result
         assert 'Location not found' in result['error']
     
-    @patch('services.weather_service.OPENWEATHER_API_KEY', 'test-api-key')
+    @patch.dict(os.environ, {'OPENWEATHER_API_KEY': 'test-api-key'})
     @patch('services.weather_service.requests.get')
     def test_get_weather_forecast_no_forecast_data(self, mock_get):
         """Test weather forecast when no data available for dates."""
@@ -177,7 +198,7 @@ class TestWeatherService:
         assert 'error' in result
         assert 'No forecast data available' in result['error']
     
-    @patch('services.weather_service.OPENWEATHER_API_KEY', None)
+    @patch.dict(os.environ, {}, clear=True)
     def test_weather_service_missing_api_key(self):
         """Test WeatherService initialization without API key."""
         from services.weather_service import WeatherService
@@ -189,7 +210,7 @@ class TestWeatherService:
 class TestWeatherRoutes:
     """Tests for weather routes."""
     
-    @patch('services.weather_service.OPENWEATHER_API_KEY', 'test-api-key')
+    @patch.dict(os.environ, {'OPENWEATHER_API_KEY': 'test-api-key'})
     @patch('services.weather_service.requests.get')
     def test_get_weather_forecast_success(self, mock_get, client, sample_journey, auth_token):
         """Test successful weather forecast retrieval via route."""
@@ -246,7 +267,7 @@ class TestWeatherRoutes:
         assert 'error' in data
         assert 'Journey not found' in data['error']
     
-    @patch('services.weather_service.OPENWEATHER_API_KEY', 'test-api-key')
+    @patch.dict(os.environ, {'OPENWEATHER_API_KEY': 'test-api-key'})
     @patch('services.weather_service.WeatherService.get_weather_forecast')
     def test_get_weather_forecast_service_error(self, mock_get_forecast, client, sample_journey, auth_token):
         """Test weather forecast when service returns error."""
@@ -266,4 +287,5 @@ class TestWeatherRoutes:
 
 
 def test_ci_is_working():
+    """Basic test to verify CI pipeline is functioning."""
     assert True
