@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from sqlalchemy.orm import Session
 
-from db import SessionLocal
+from db import SessionLocal, get_db
 from middleware.jwt_auth import token_required
 from models.journey import Journey
 from services.ai_service import AIService
@@ -14,8 +14,7 @@ ai_service = AIService()
 @ai_bp.route('/<int:journey_id>', methods=['POST'])
 @token_required
 def generate_recommendations(payload, journey_id):
-    db: Session = SessionLocal()
-
+    db = get_db()
     try:
         # 1. Get journey from DB
         journey = db.query(Journey).filter(Journey.journey_id == journey_id).first()

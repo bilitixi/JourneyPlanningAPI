@@ -37,11 +37,8 @@ def get_db():
     Dependency function to get database session.
     Use this in your routes to get a database session.
     """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
+    return SessionLocal()
 
 
 def init_db():

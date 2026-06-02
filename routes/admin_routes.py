@@ -14,8 +14,9 @@ def get_api_logs(current_user):
     Admin endpoint to retrieve API usage logs.
     Admin users can retrieve API usage logs.
     """
+    db = get_db()
     try:
-        db: Session = next(get_db())
+
         
         # Query all API usage logs
         logs = db.query(APIUsageLog).order_by(APIUsageLog.created_at.desc()).all()
@@ -30,3 +31,5 @@ def get_api_logs(current_user):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()

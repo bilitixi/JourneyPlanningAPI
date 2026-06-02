@@ -16,9 +16,10 @@ def get_weather_forecast(payload, journey_id):
     """
     Get weather forecast for a journey.
     """
+    db = get_db()
     try:
         user_id = payload.get('user_id')
-        db: Session = next(get_db())
+
 
         # Get journey for user
         journey = db.query(Journey).filter(
@@ -44,3 +45,5 @@ def get_weather_forecast(payload, journey_id):
         return jsonify({'error': str(e)}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()

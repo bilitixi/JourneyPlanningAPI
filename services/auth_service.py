@@ -23,8 +23,9 @@ class AuthService:
         Returns:
             dict with success message or error
         """
+        db = get_db()
         try:
-            db: Session = next(get_db())
+
             
             # Check if email already exists
             existing_user = db.query(User).filter(User.email == user_data['email']).first()
@@ -52,6 +53,8 @@ class AuthService:
         except Exception as e:
             db.rollback()
             return {'error': str(e)}, 500
+        finally:
+            db.close()
     
     def login(self, credentials):
         """
@@ -63,8 +66,9 @@ class AuthService:
         Returns:
             dict with access_token and user info or error
         """
+        db = get_db()
         try:
-            db: Session = next(get_db())
+
             
             # Find user by email
             user = db.query(User).filter(User.email == credentials['email']).first()
@@ -100,3 +104,5 @@ class AuthService:
             
         except Exception as e:
             return {'error': str(e)}, 500
+        finally:
+            db.close()
