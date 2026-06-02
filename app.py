@@ -8,7 +8,13 @@ from flask_cors import CORS
 from db import init_db
 import models
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+  "https://journeyplanninguidraft-git-deploy-bilitixis-projects.vercel.app"
+        ]
+    }
+})
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
