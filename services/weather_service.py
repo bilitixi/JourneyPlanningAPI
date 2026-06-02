@@ -58,7 +58,7 @@ class WeatherService:
 
             if not locations:
                 return {
-                    "error": f"Location '{destination}' not found"
+                    "error": "Location not found"
                 }, 404
 
             lat = locations[0]["lat"]
