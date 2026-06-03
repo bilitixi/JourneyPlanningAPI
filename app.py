@@ -4,6 +4,8 @@ from routes.weather_routes import weather_bp
 from routes.journey_routes import journey_bp
 from routes.recommendation_routes import ai_bp
 from flask_cors import CORS
+from services.email_service import mail
+import os
 
 from db import init_db
 import models
@@ -15,6 +17,17 @@ CORS(app, resources={
         ]
     }
 })
+
+# Flask-Mail configuration
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@journeyplanning.com')
+
+# Initialize Flask-Mail
+mail.init_app(app)
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')

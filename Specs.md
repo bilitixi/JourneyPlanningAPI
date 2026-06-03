@@ -41,7 +41,7 @@ Authorization: Bearer <access_token>
 #### Register User
 **POST** `/api/auth/register`
 
-Register a new user account.
+Register a new user account. A verification email will be sent to the provided email address.
 
 **Request Body:**
 ```json
@@ -56,7 +56,7 @@ Register a new user account.
 **Response (201 Created):**
 ```json
 {
-  "message": "User registered successfully",
+  "message": "User registered successfully. Please check your email to verify your account.",
   "user_id": 1
 }
 ```
@@ -80,7 +80,7 @@ Register a new user account.
 #### Login User
 **POST** `/api/auth/login`
 
-Authenticate user and receive JWT token.
+Authenticate user and receive JWT token. User's email must be verified before logging in.
 
 **Request Body:**
 ```json
@@ -111,10 +111,179 @@ Authenticate user and receive JWT token.
 }
 ```
 
+**Error Response (403 Forbidden):**
+```json
+{
+  "error": "Please verify your email before logging in"
+}
+```
+
 **Error Response (401 Unauthorized):**
 ```json
 {
   "error": "Token is missing"
+}
+```
+
+---
+
+#### Verify Email
+**POST** `/api/auth/verify-email`
+
+Verify user's email using the verification token sent via email.
+
+**Request Body:**
+```json
+{
+  "token": "verification_token_from_email"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Email verified successfully"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Invalid verification token"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Verification token has expired"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Missing required field: token"
+}
+```
+
+---
+
+#### Resend Verification Email
+**POST** `/api/auth/resend-verification`
+
+Resend the verification email to a user's email address.
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Verification email sent successfully"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "error": "User not found"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Email is already verified"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Missing required field: email"
+}
+```
+
+---
+
+#### Forgot Password
+**POST** `/api/auth/forgot-password`
+
+Initiate password reset by sending a reset email to the user's email address.
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "If the email exists, a password reset link has been sent"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Missing required field: email"
+}
+```
+
+---
+
+#### Reset Password
+**POST** `/api/auth/reset-password`
+
+Reset user's password using the reset token sent via email.
+
+**Request Body:**
+```json
+{
+  "token": "reset_token_from_email",
+  "new_password": "NewPassword123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Password reset successfully"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Invalid reset token"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Reset token has expired"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Missing required field: token"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Missing required field: new_password"
 }
 ```
 
@@ -450,6 +619,7 @@ Authorization: Bearer <access_token>
   "last_name": "Smith",
   "email": "john@example.com",
   "role": "user",
+  "is_verified": false,
   "created_at": "2024-01-01T00:00:00"
 }
 ```
@@ -460,6 +630,11 @@ Authorization: Bearer <access_token>
 - `last_name` (string, required): User's last name (max 100 characters)
 - `email` (string, required, unique): User's email address (max 255 characters)
 - `role` (string, default: "user"): User role ("user" or "admin")
+- `is_verified` (boolean, default: false): Email verification status
+- `verification_token` (string, nullable): Email verification token
+- `verification_expires` (datetime, nullable): Verification token expiration time
+- `reset_token` (string, nullable): Password reset token
+- `reset_expires` (datetime, nullable): Password reset token expiration time
 - `created_at` (datetime, auto-generated): Account creation timestamp
 
 ---
@@ -521,6 +696,15 @@ The backend requires the following environment variables:
 - `OPENWEATHER_API_KEY`: API key for OpenWeatherMap service
 - `OPENROUTER_API_KEY`: API key for OpenRouter AI service (for recommendations)
 
+**Email Configuration (for email verification and password reset):**
+- `MAIL_SERVER`: SMTP server address (default: "smtp.gmail.com")
+- `MAIL_PORT`: SMTP server port (default: 587)
+- `MAIL_USE_TLS`: Use TLS for email (default: "True")
+- `MAIL_USERNAME`: Email username for SMTP authentication
+- `MAIL_PASSWORD`: Email password or app-specific password for SMTP authentication
+- `MAIL_DEFAULT_SENDER`: Default sender email address (default: "noreply@journeyplanning.com")
+- `FRONTEND_URL`: Frontend URL for email verification and reset links (default: "http://localhost:3000")
+
 **Database:**
 - `MYSQL_HOST`: MySQL host (default: "localhost")
 - `MYSQL_PORT`: MySQL port (default: "3306")
@@ -534,10 +718,12 @@ The backend requires the following environment variables:
 ## Authentication Flow
 
 1. **Register:** User creates account via `/api/auth/register`
-2. **Login:** User authenticates via `/api/auth/login` to receive JWT token
-3. **Store Token:** Frontend stores the access_token (localStorage, sessionStorage, or cookie)
-4. **Include Token:** Frontend includes token in Authorization header for all protected requests
-5. **Token Refresh:** Tokens expire after 24 hours; user must re-login
+2. **Verify Email:** User receives verification email and verifies email via `/api/auth/verify-email` (or `/api/auth/resend-verification` to resend)
+3. **Login:** User authenticates via `/api/auth/login` to receive JWT token (email must be verified first)
+4. **Store Token:** Frontend stores the access_token (localStorage, sessionStorage, or cookie)
+5. **Include Token:** Frontend includes token in Authorization header for all protected requests
+6. **Token Refresh:** Tokens expire after 24 hours; user must re-login
+7. **Password Reset:** If user forgets password, they can request reset via `/api/auth/forgot-password` and complete via `/api/auth/reset-password`
 
 ---
 
