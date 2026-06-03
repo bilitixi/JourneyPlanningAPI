@@ -37,33 +37,7 @@ email_service = EmailService()
 # =========================
 # TEST EMAIL ROUTE
 # =========================
-@app.route("/test-email", methods=["GET"])
-def test_email():
-    try:
-        print("🔥 TEST EMAIL TRIGGERED")
 
-        success = email_service.send_verification_email(
-            email="your_email@gmail.com",   # CHANGE THIS
-            token="test-token-123"
-        )
-
-        return jsonify({
-            "email_sent": success
-        }), 200
-
-    except Exception as e:
-        import traceback
-        print("❌ TEST EMAIL FAILED")
-        traceback.print_exc()
-
-        return jsonify({
-            "error": str(e)
-        }), 500
-
-
-# =========================
-# ROOT ROUTE
-# =========================
 @app.route('/')
 def hello_world():
     return 'Hello World!'
