@@ -29,7 +29,7 @@ class AuthService:
             ).decode('utf-8')
 
             verification_token = secrets.token_urlsafe(32)
-            verification_expires = datetime.utcnow() + timedelta(hours=24)
+            verification_expires = datetime.utcnow() + timedelta(minutes=15)
 
             new_user = User(
                 first_name=user_data['first_name'],
@@ -159,9 +159,14 @@ class AuthService:
             if user.is_verified:
                 return {'error': 'Already verified'}, 400
 
+            # Check if there's already a valid token (not expired)
+            if user.verification_token and user.verification_expires:
+                if user.verification_expires > datetime.utcnow():
+                    return {'error': 'Please wait before requesting another verification email'}, 429
+
             token = secrets.token_urlsafe(32)
             user.verification_token = token
-            user.verification_expires = datetime.utcnow() + timedelta(hours=24)
+            user.verification_expires = datetime.utcnow() + timedelta(minutes=15)
 
             db.commit()
             print("➡️ RESEND START")
@@ -194,9 +199,14 @@ class AuthService:
             if not user:
                 return {'message': 'If email exists, reset sent'}, 200
 
+            # Check if there's already a valid reset token (not expired)
+            if user.reset_token and user.reset_expires:
+                if user.reset_expires > datetime.utcnow():
+                    return {'error': 'Please wait before requesting another password reset email'}, 429
+
             token = secrets.token_urlsafe(32)
             user.reset_token = token
-            user.reset_expires = datetime.utcnow() + timedelta(hours=1)
+            user.reset_expires = datetime.utcnow() + timedelta(minutes=15)
 
             db.commit()
 
