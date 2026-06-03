@@ -150,6 +150,7 @@ class AuthService:
     def resend_verification_email(self, email):
         db = get_db()
         try:
+
             user = db.query(User).filter(User.email == email).first()
 
             if not user:
@@ -163,6 +164,9 @@ class AuthService:
             user.verification_expires = datetime.utcnow() + timedelta(hours=24)
 
             db.commit()
+            print("➡️ RESEND START")
+            print("Email:", user.email)
+            print("Token:", user.verification_token)
 
             success = email_service.send_verification_email(user.email, token)
 
@@ -176,6 +180,7 @@ class AuthService:
             print("RESEND ERROR:", str(e))
             return {'error': str(e)}, 500
         finally:
+            print("➡️ RESEND END")
             db.close()
 
     # =========================
