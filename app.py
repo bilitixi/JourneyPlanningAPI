@@ -4,6 +4,8 @@ from routes.weather_routes import weather_bp
 from routes.journey_routes import journey_bp
 from routes.recommendation_routes import ai_bp
 from flask_cors import CORS
+
+from services.auth_service import email_service
 from services.email_service import mail
 import os
 
@@ -34,7 +36,16 @@ app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(weather_bp, url_prefix='/api/weather')
 app.register_blueprint(journey_bp)
 app.register_blueprint(ai_bp)
+@app.route("/test-email")
+def test_email():
+    success = email_service.send_verification_email(
+        email="bilitixi@gmail.com",  # change this
+        verification_token="test-token-123"
+    )
 
+    return {
+        "email_sent": success
+    }
 @app.route('/')
 def hello_world():
     return 'Hello World!'
