@@ -32,6 +32,10 @@ Authorization: Bearer <access_token>
 
 **Token Expiration:** 24 hours
 
+**Verification Token Expiration:** 15 minutes
+
+**Reset Token Expiration:** 15 minutes
+
 ---
 
 ## API Endpoints
@@ -114,7 +118,7 @@ Authenticate user and receive JWT token. User's email must be verified before lo
 **Error Response (403 Forbidden):**
 ```json
 {
-  "error": "Please verify your email before logging in"
+  "error": "Please verify your email"
 }
 ```
 
@@ -122,6 +126,20 @@ Authenticate user and receive JWT token. User's email must be verified before lo
 ```json
 {
   "error": "Token is missing"
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+  "error": "Token has expired"
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+  "error": "Invalid token"
 }
 ```
 
@@ -167,6 +185,13 @@ Verify user's email using the verification token sent via email.
 }
 ```
 
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Token expired"
+}
+```
+
 ---
 
 #### Resend Verification Email
@@ -198,7 +223,14 @@ Resend the verification email to a user's email address.
 **Error Response (400 Bad Request):**
 ```json
 {
-  "error": "Email is already verified"
+  "error": "Already verified"
+}
+```
+
+**Error Response (429 Too Many Requests):**
+```json
+{
+  "error": "Please wait before requesting another verification email"
 }
 ```
 
@@ -226,7 +258,7 @@ Initiate password reset by sending a reset email to the user's email address.
 **Response (200 OK):**
 ```json
 {
-  "message": "If the email exists, a password reset link has been sent"
+  "message": "If email exists, reset sent"
 }
 ```
 
@@ -234,6 +266,13 @@ Initiate password reset by sending a reset email to the user's email address.
 ```json
 {
   "error": "Missing required field: email"
+}
+```
+
+**Error Response (429 Too Many Requests):**
+```json
+{
+  "error": "Please wait before requesting another password reset email"
 }
 ```
 
@@ -284,6 +323,20 @@ Reset user's password using the reset token sent via email.
 ```json
 {
   "error": "Missing required field: new_password"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Token expired"
+}
+```
+
+**Error Response (429 Too Many Requests):**
+```json
+{
+  "error": "Please wait before requesting another password reset email"
 }
 ```
 
@@ -439,17 +492,18 @@ Authorization: Bearer <access_token>
 **URL Parameters:**
 - `journey_id` (integer, required): The ID of the journey
 
-**Request Body (all fields optional):**
+**Request Body (all fields optional except notes cannot be updated):**
 ```json
 {
   "destination": "London",
   "start_date": "2024-07-01",
   "end_date": "2024-07-10",
   "budget": 3000.00,
-  "people": 3,
-  "notes": "Updated notes"
+  "people": 3
 }
 ```
+
+**Note:** The `notes` field cannot be updated via this endpoint.
 
 **Response (200 OK):**
 ```json
@@ -556,7 +610,21 @@ Authorization: Bearer <access_token>
 **Error Response (404 Not Found):**
 ```json
 {
-  "error": "No forecast data available"
+  "error": "No forecast data available for the selected dates"
+}
+```
+
+**Error Response (504 Gateway Timeout):**
+```json
+{
+  "error": "Weather service timed out"
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "error": "Weather API error: <error details>"
 }
 ```
 
@@ -568,7 +636,7 @@ Authorization: Bearer <access_token>
 #### Generate Travel Recommendations
 **POST** `/api/recommendations/<journey_id>`
 
-Generate AI-powered travel recommendations for a specific journey.
+Generate AI-powered travel recommendations for a specific journey using OpenRouter API with NVIDIA Nemotron model.
 
 **Headers:**
 ```
@@ -591,6 +659,8 @@ Authorization: Bearer <access_token>
   ]
 }
 ```
+
+**Note:** If the OpenRouter API fails, the service falls back to predefined recommendations for common New Zealand destinations (Queenstown, Auckland, Wellington, Christchurch) or generic recommendations for other destinations.
 
 **Error Response (404 Not Found):**
 ```json
@@ -697,21 +767,16 @@ The backend requires the following environment variables:
 - `OPENROUTER_API_KEY`: API key for OpenRouter AI service (for recommendations)
 
 **Email Configuration (for email verification and password reset):**
-- `MAIL_SERVER`: SMTP server address (default: "smtp.gmail.com")
-- `MAIL_PORT`: SMTP server port (default: 587)
-- `MAIL_USE_TLS`: Use TLS for email (default: "True")
-- `MAIL_USERNAME`: Email username for SMTP authentication
-- `MAIL_PASSWORD`: Email password or app-specific password for SMTP authentication
-- `MAIL_DEFAULT_SENDER`: Default sender email address (default: "noreply@journeyplanning.com")
+- The backend uses MailerSend service for email delivery
+- Email service configuration is handled in `services/email_service.py`
+- Required MailerSend environment variables:
+  - `MAILERSEND_API_KEY`: API key for MailerSend service
 - `FRONTEND_URL`: Frontend URL for email verification and reset links (default: "http://localhost:3000")
 
 **Database:**
-- `MYSQL_HOST`: MySQL host (default: "localhost")
-- `MYSQL_PORT`: MySQL port (default: "3306")
-- `MYSQL_USER`: MySQL username (default: "root")
-- `MYSQL_PASSWORD`: MySQL password (default: "")
-- `MYSQL_DATABASE`: MySQL database name (default: "journey_planning")
-- Database configuration is handled in `db.py` (MySQL with SQLAlchemy)
+- `DATABASE_URL`: Full PostgreSQL connection string from cloud provider
+- Database configuration is handled in `db.py` (PostgreSQL with SQLAlchemy)
+- Note: MySQL configuration is commented out in db.py but available for local development
 
 ---
 
@@ -729,16 +794,22 @@ The backend requires the following environment variables:
 
 ## Rate Limiting & Usage
 
-- No explicit rate limiting is currently implemented
+- Rate limiting is implemented for email-related endpoints:
+  - Verification email resend: 15-minute cooldown between requests
+  - Password reset email: 15-minute cooldown between requests
 - API usage is logged in the `api_usage_logs` table for admin monitoring
-- Admin users can access usage logs (endpoint not currently registered in main app)
+- Admin users can access usage logs via `/api/admin/logs` (endpoint exists in codebase but not currently registered in main app)
 
 ---
 
 ## CORS Configuration
 
-The backend does not currently have explicit CORS configuration. For React frontend integration, you may need to:
-1. Add Flask-CORS to the backend, or
+The backend has Flask-CORS configured with the following settings:
+- **Allowed Origin:** `https://journeyplanninguidraft.vercel.app`
+- **CORS Scope:** All `/api/*` endpoints
+
+For local development with a different frontend URL, you may need to:
+1. Update the CORS origins in `app.py`, or
 2. Configure a proxy in your React development server
 
 ---
@@ -820,13 +891,15 @@ const createJourney = async (journeyData) => {
 1. **Date Format:** All dates must be in `YYYY-MM-DD` format
 2. **Budget Format:** Budget should be sent as a number (e.g., `2500.00`)
 3. **Token Storage:** Store JWT tokens securely; consider using httpOnly cookies for production
-4. **Token Expiry:** Handle 401 errors by redirecting to login page
+4. **Token Expiry:** Handle 401 errors by redirecting to login page; access tokens expire after 24 hours
 5. **Error Handling:** Always check response.ok and handle error messages appropriately
 6. **User Isolation:** Users can only access their own journeys; the backend enforces this via user_id in JWT payload
 7. **Weather Data:** Weather endpoint requires a valid journey_id belonging to the authenticated user
-8. **AI Recommendations:** Recommendations endpoint uses AI service to generate travel suggestions based on journey details
-9. **Database:** Backend uses MySQL database with SQLAlchemy ORM
-10. **Admin Routes:** Admin routes exist in the codebase but are not currently registered in the main app
+8. **AI Recommendations:** Recommendations endpoint uses OpenRouter API with NVIDIA Nemotron model to generate travel suggestions. Falls back to predefined recommendations for New Zealand cities if API fails.
+9. **Database:** Backend uses PostgreSQL database with SQLAlchemy ORM (MySQL configuration available but commented out)
+10. **Admin Routes:** Admin routes exist in the codebase (`routes/admin_routes.py`) but are not currently registered in the main app. To enable, register `admin_bp` in `app.py` with appropriate URL prefix.
+11. **Token Expiration:** Verification and reset tokens expire after 15 minutes to enhance security.
+12. **Rate Limiting:** Rate limiting is implemented for email resend and password reset requests (15-minute cooldown period). Handle 429 errors appropriately.
 
 ---
 
