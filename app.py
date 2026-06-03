@@ -15,7 +15,7 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {
         "origins": [
-  "https://journeyplanninguidraft-git-deploy-bilitixis-projects.vercel.app"
+"http://127.0.0.1:3000"
         ]
     }
 })
