@@ -20,7 +20,7 @@ app.register_blueprint(ai_bp)
 
 @app.route('/')
 def hello_world():
-    return 'Hello World!'
+    return 'This is Journey Planning API endpoint'
 print(app.url_map)
 
 if __name__ == '__main__':
