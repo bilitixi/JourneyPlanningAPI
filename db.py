@@ -7,15 +7,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # MySQL Database Configuration
+"""
 MYSQL_HOST = os.getenv('MYSQL_HOST', 'localhost')
 MYSQL_PORT = os.getenv('MYSQL_PORT', '3306')
 MYSQL_USER = os.getenv('MYSQL_USER', 'root')
 MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', '')
 MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'journey_planning')
+"""
 
 # Create MySQL connection string
 # For Docker container, use container name or 'host.docker.internal' if needed
-DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+# DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+# cloud deployment
+# Use the full PostgreSQL connection string from your cloud provider
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Fix for some providers (important)
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Create SQLAlchemy engine
 engine = create_engine(
@@ -52,8 +61,6 @@ def init_db():
     print("Tables registered:")
     print(Base.metadata.tables.keys())
 
-    Base.metadata.create_all(bind=engine)
-    
     # Create all tables
     Base.metadata.create_all(bind=engine)
     print("Database tables created successfully")
@@ -66,10 +73,10 @@ def test_connection():
     try:
         with engine.connect() as connection:
             result = connection.execute(text("SELECT 1"))
-            print("MySQL database connection successful!")
+            print("PostgreSQL database connection successful!")
             return True
     except Exception as e:
-        print(f"MySQL database connection failed: {e}")
+        print(f"PostgrSQL database connection failed: {e}")
         return False
 
 
