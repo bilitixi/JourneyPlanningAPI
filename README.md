@@ -332,6 +332,70 @@ Authorization: Bearer <jwt_token>
 
 ---
 
+## Update Account
+
+```http
+PUT /api/auth/me
+```
+
+Updates the authenticated user's own profile. Requires a valid JWT. All fields are optional; only the fields provided are updated. `current_password` is required only when changing `email` or `password`.
+
+### Request
+
+```json
+{
+  "first_name": "John",
+  "last_name": "Smith",
+  "email": "new-email@example.com",
+  "password": "NewPassword123",
+  "current_password": "OldPassword123"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "User updated successfully",
+  "user": {
+    "id": 1,
+    "first_name": "John",
+    "last_name": "Smith",
+    "email": "new-email@example.com",
+    "role": "user",
+    "created_at": "2026-07-19T10:30:00"
+  }
+}
+```
+
+---
+
+## Delete Account
+
+```http
+DELETE /api/auth/me
+```
+
+Deletes the authenticated user's own account and all of their journeys. Requires a valid JWT and password confirmation.
+
+### Request
+
+```json
+{
+  "current_password": "Password123"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Account deleted successfully"
+}
+```
+
+---
+
 # API Endpoints
 
 ## Journey Endpoints
