@@ -332,6 +332,87 @@ Authorization: Bearer <jwt_token>
 
 ---
 
+## Account Management
+
+Both endpoints require a valid JWT (`Authorization: Bearer <jwt_token>`) and operate only on the authenticated user's own account - the user id is taken from the JWT payload, never from the request body or URL.
+
+### Update Account
+
+```http
+PUT /api/auth/me
+```
+
+All fields are optional - only the fields provided are updated. `current_password` is required only when changing `email` or `password`.
+
+#### Request
+
+```json
+{
+  "first_name": "John",
+  "last_name": "Smith",
+  "email": "new-email@example.com",
+  "password": "NewPassword123",
+  "current_password": "OldPassword123"
+}
+```
+
+#### Responses
+
+| Status | Condition |
+| --- | --- |
+| 200 | Updated successfully |
+| 400 | `email` already registered to another user |
+| 401 | Missing/incorrect `current_password` when changing email or password |
+| 404 | User not found |
+
+```json
+// 200
+{
+  "message": "User updated successfully",
+  "user": {
+    "id": 1,
+    "first_name": "John",
+    "last_name": "Smith",
+    "email": "new-email@example.com",
+    "role": "user",
+    "created_at": "2026-07-19T10:30:00"
+  }
+}
+```
+
+### Delete Account
+
+```http
+DELETE /api/auth/me
+```
+
+Deletes the authenticated user's own account and cascades to delete all of their journeys first. Requires password confirmation since this action is irreversible.
+
+#### Request
+
+```json
+{
+  "current_password": "Password123"
+}
+```
+
+#### Responses
+
+| Status | Condition |
+| --- | --- |
+| 200 | Deleted successfully |
+| 401 | Missing/incorrect `current_password` |
+| 404 | User not found |
+
+```json
+// 200
+{
+  "message": "Account deleted successfully"
+}
+```
+
+---
+
 # API Endpoints
 
 ## Journey Endpoints

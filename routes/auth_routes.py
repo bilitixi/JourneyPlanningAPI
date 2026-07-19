@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services.auth_service import AuthService
+from middleware.jwt_auth import token_required
 
 auth_bp = Blueprint('auth', __name__)
 auth_service = AuthService()
@@ -151,6 +152,57 @@ def reset_password():
         
         result, status_code = auth_service.reset_password(data['token'], data['new_password'])
         return jsonify(result), status_code
-        
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/me', methods=['PUT'])
+@token_required
+def update_me(payload):
+    """
+    Update the authenticated user's own profile.
+    All fields are optional - only provided fields are updated.
+    `current_password` is required when changing `email` or `password`.
+
+    Request body:
+    {
+        "first_name": "John",
+        "last_name": "Smith",
+        "email": "new-email@example.com",
+        "password": "NewPassword123",
+        "current_password": "OldPassword123"
+    }
+    """
+    try:
+        data = request.get_json()
+        user_id = payload.get('user_id')
+
+        result, status_code = auth_service.update_user(user_id, data)
+        return jsonify(result), status_code
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/me', methods=['DELETE'])
+@token_required
+def delete_me(payload):
+    """
+    Delete the authenticated user's own account.
+    Requires password confirmation. Cascades to delete the user's journeys.
+
+    Request body:
+    {
+        "current_password": "Password123"
+    }
+    """
+    try:
+        data = request.get_json()
+        user_id = payload.get('user_id')
+
+        result, status_code = auth_service.delete_user(user_id, data)
+        return jsonify(result), status_code
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
