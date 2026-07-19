@@ -3,6 +3,7 @@ import jwt
 import secrets
 from datetime import datetime, timedelta
 from models.user import User
+from models.journey import Journey
 from db import get_db
 import os
 from services.email_service import EmailService
@@ -254,6 +255,95 @@ class AuthService:
         except Exception as e:
             db.rollback()
             print("RESET ERROR:", str(e))
+            return {'error': str(e)}, 500
+        finally:
+            db.close()
+
+    # =========================
+    # UPDATE USER
+    # =========================
+    def update_user(self, user_id, data):
+        db = get_db()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+
+            if not user:
+                return {'error': 'User not found'}, 404
+
+            changing_email = 'email' in data and data['email'] != user.email
+            changing_password = 'password' in data
+
+            if changing_email or changing_password:
+                current_password = data.get('current_password')
+                if not current_password or not bcrypt.checkpw(
+                    current_password.encode('utf-8'),
+                    user.password_hash.encode('utf-8')
+                ):
+                    return {'error': 'Missing or incorrect current password'}, 401
+
+            if changing_email:
+                existing_user = db.query(User).filter(
+                    User.email == data['email'],
+                    User.id != user_id
+                ).first()
+                if existing_user:
+                    return {'error': 'Email already registered'}, 400
+                user.email = data['email']
+
+            if 'first_name' in data:
+                user.first_name = data['first_name']
+
+            if 'last_name' in data:
+                user.last_name = data['last_name']
+
+            if changing_password:
+                user.password_hash = bcrypt.hashpw(
+                    data['password'].encode('utf-8'),
+                    bcrypt.gensalt()
+                ).decode('utf-8')
+
+            db.commit()
+            db.refresh(user)
+
+            return {
+                'message': 'User updated successfully',
+                'user': user.to_dict()
+            }, 200
+
+        except Exception as e:
+            db.rollback()
+            print("UPDATE USER ERROR:", str(e))
+            return {'error': str(e)}, 500
+        finally:
+            db.close()
+
+    # =========================
+    # DELETE USER
+    # =========================
+    def delete_user(self, user_id, data):
+        db = get_db()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+
+            if not user:
+                return {'error': 'User not found'}, 404
+
+            current_password = data.get('current_password')
+            if not current_password or not bcrypt.checkpw(
+                current_password.encode('utf-8'),
+                user.password_hash.encode('utf-8')
+            ):
+                return {'error': 'Missing or incorrect current password'}, 401
+
+            db.query(Journey).filter(Journey.user_id == user_id).delete()
+            db.delete(user)
+            db.commit()
+
+            return {'message': 'Account deleted successfully'}, 200
+
+        except Exception as e:
+            db.rollback()
+            print("DELETE USER ERROR:", str(e))
             return {'error': str(e)}, 500
         finally:
             db.close()
