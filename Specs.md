@@ -767,10 +767,15 @@ The backend requires the following environment variables:
 - `OPENROUTER_API_KEY`: API key for OpenRouter AI service (for recommendations)
 
 **Email Configuration (for email verification and password reset):**
-- The backend uses MailerSend service for email delivery
+- The backend sends email via SMTP (using Python's `smtplib`)
 - Email service configuration is handled in `services/email_service.py`
-- Required MailerSend environment variables:
-  - `MAILERSEND_API_KEY`: API key for MailerSend service
+- Required/optional SMTP environment variables:
+  - `MAIL_SERVER`: SMTP server address (default: "smtp.gmail.com")
+  - `MAIL_PORT`: SMTP server port (default: 587)
+  - `MAIL_USERNAME`: Email username for SMTP authentication
+  - `MAIL_PASSWORD`: Email password or app-specific password for SMTP authentication
+  - `MAIL_USE_TLS`: Whether to use STARTTLS (default: "true")
+  - `MAIL_DEFAULT_SENDER`: From address used for outgoing emails (default: `MAIL_USERNAME`)
 - `FRONTEND_URL`: Frontend URL for email verification and reset links (default: "http://localhost:3000")
 
 **Database:**
